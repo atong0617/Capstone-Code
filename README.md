@@ -6,109 +6,76 @@ pacman::p_load(readxl, plyr, lme4,nlme, robustlmm, car, broom, lsmeans, ggplot2,
 
 data.cog <- read_excel("RVCI_MASTER_20240508.xlsx")
 data.cog.baseline <- subset(data.cog, Timepoint=="Baseline")
-data.cog.baseline1 <- subset(data.cog.baseline, select = -c(2,4:20,28:38,49:75))
-data.cog.baseline2 <- rename(data.cog.baseline1, c("...21"="Trails A - Time(sec)", 
-                                                   "...22"="Trails A - Comission Errors", 
-                                                   "...23"="Trails A - Omission Errors", 
-                                                   "...24"="Trails B - Time(sec)", 
-                                                   "...25"="Trails B - Comission Errors", 
-                                                   "...26"= "Trails B - Omission Errors", 
-                                                   "...27"="Trails B minus A",
-                                                   "...39"="Stroop 1 Time(sec)", 
-                                                   "...40"="Stroop 1 Uncorrected Errors", 
-                                                   "...41"="Stroop 1 Corrected Errors", 
-                                                   "...42"="Stroop 2 Time(sec)", 
-                                                   "...43"="Stroop 2 Uncorrected Errors", 
-                                                   "...44"="Stroop 2 Corrected Errors", 
-                                                   "...45"="Stroop 3 Time(sec)", 
-                                                   "...46"="Stroop 3 Uncorrected Errors", 
-                                                   "...47"="Stroop 3 Corrected Errors", 
-                                                   "...48"="Stroop 3 - Stroop 2 Time(sec)"))
+data.cog.baseline1 <- subset(data.cog.baseline, select = c(1,27,48,68))
+data.cog.baseline2 <- data.cog.baseline1 %>%
+  rename(TMT_BA = `...27`,
+         Stroop_32 = `...48`,
+         MoCA = `...68`)
+
+data.cog.baseline2$`TMT_BA` <- as.numeric(as.character(data.cog.baseline2$`TMT_BA`))
+data.cog.baseline2$`Stroop_32` <- as.numeric(as.character(data.cog.baseline2$`Stroop_32`))
+data.cog.baseline2$`MoCA` <- as.numeric(as.character(data.cog.baseline2$`MoCA`))
 data.cog.baseline2 <- na.omit(data.cog.baseline2)
+
 data.cog.baseline2 <- data.cog.baseline2[-56, ]
 data.cog.baseline2 <- data.cog.baseline2[-47, ]
-data.cog.baseline3 <- subset(data.cog.baseline2, select = c(1,9,19))
-
 
 
 data.phys <- read_excel("RVCI_MASTER_20240508.xlsx", sheet = "Physical")
 data.phys.baseline <- subset(data.phys, Timepoint=="Baseline")
-data.phys.baseline1 <- subset(data.phys.baseline, select = c(1,3:5,9,35,65,96)) 
-data.phys.baseline2 <- rename(data.phys.baseline1, c("Intake Form"="Age", 
-                                                     "...5"="Sex", 
-                                                     "...9"="BMI (kg/m^2)", 
-                                                     "...35"="CF PWV", 
-                                                     "...65"="Grip Strength (Total Score)", 
-                                                     "6 Minute Walk Test"="6MWT (Meters Walked)"))
+data.phys.baseline1 <- subset(data.phys.baseline, select = c(1,4,5,9,35,65,96)) 
+data.phys.baseline2 <- rename(data.phys.baseline1, 
+                              Age = `Intake Form`,
+                              Sex = `...5`,
+                              `BMI` = `...9`,
+                              PWV = `...35`,
+                              Grip_Strength = `...65`,
+                              Meters_Walked = `6 Minute Walk Test`)
+
+data.phys.baseline2 <- data.phys.baseline2 %>%
+  mutate(Sex = recode(Sex, "Female" = 0, "Male" = 1))
+data.phys.baseline2$`Age` <- as.numeric(as.character(data.phys.baseline2$`Age`))
+data.phys.baseline2$`BMI` <- as.numeric(as.character(data.phys.baseline2$`BMI`))
+data.phys.baseline2$`PWV` <- as.numeric(as.character(data.phys.baseline2$`PWV`))
+data.phys.baseline2$`Grip_Strength` <- as.numeric(as.character(data.phys.baseline2$`Grip_Strength`))
+data.phys.baseline2$`Meters_Walked` <- as.numeric(as.character(data.phys.baseline2$`Meters_Walked`))
 data.phys.baseline2 <- na.omit(data.phys.baseline2)
-data.phys.baseline3 <- subset(data.phys.baseline2, select = c(1,6:8))
 
-
+data.phys.baseline2$VO2max <- ((0.1 * (data.phys.baseline2$Meters_Walked / 6) + 3.5) / 3.5) * 3.5
 
 
 # Descriptives
-data.phys.baseline2$Age <- as.numeric(as.character(data.phys.baseline2$Age))
 describeBy(data.phys.baseline2$Age)
 
 table(data.phys.baseline2$Sex)
 prop.table(table(data.phys.baseline2$Sex))
 
-data.phys.baseline2$`BMI (kg/m^2)` <- as.numeric(as.character(data.phys.baseline2$`BMI (kg/m^2)`))
-describeBy(data.phys.baseline2$`BMI (kg/m^2)`)
+describeBy(data.phys.baseline2$`BMI`)
 
-data.phys.baseline2$`CF PWV` <- as.numeric(as.character(data.phys.baseline2$`CF PWV`))
-describeBy(data.phys.baseline2$`CF PWV`)
+describeBy(data.phys.baseline2$`PWV`)
 
-data.phys.baseline2$`Grip Strength (Total Score)` <- as.numeric(as.character(data.phys.baseline2$`Grip Strength (Total Score)`))
-describeBy(data.phys.baseline2$`Grip Strength (Total Score)`)
+describeBy(data.phys.baseline2$`Grip_Strength`)
 
-data.phys.baseline2$`6MWT (Meters Walked)` <- as.numeric(as.character(data.phys.baseline2$`6MWT (Meters Walked)`))
-describeBy(data.phys.baseline2$`6MWT (Meters Walked)`)
+describeBy(data.phys.baseline2$`Meters_Walked`)
 
-describeBy(data.cog.phys.baseline$VO2max)
+describeBy(data.phys.baseline2$VO2max)
 
-data.cog.baseline2$`Trails A - Time(sec)` <- as.numeric(as.character(data.cog.baseline2$`Trails A - Time(sec)`))
-describeBy(data.cog.baseline2$`Trails A - Time(sec)`)
+describeBy(data.cog.baseline2$`TMT_BA`)
 
-data.cog.baseline2$`Trails B - Time(sec)` <- as.numeric(as.character(data.cog.baseline2$`Trails B - Time(sec)`))
-describeBy(data.cog.baseline2$`Trails B - Time(sec)`)
+describeBy(data.cog.baseline2$`Stroop_32`)
 
-data.cog.baseline2$`Trails B minus A` <- as.numeric(as.character(data.cog.baseline2$`Trails B minus A`))
-describeBy(data.cog.baseline2$`Trails B minus A`)
-
-data.cog.baseline2$`Stroop 1 Time(sec)` <- as.numeric(as.character(data.cog.baseline2$`Stroop 1 Time(sec)`))
-describeBy(data.cog.baseline2$`Stroop 1 Time(sec)`)
-
-data.cog.baseline2$`Stroop 2 Time(sec)` <- as.numeric(as.character(data.cog.baseline2$`Stroop 2 Time(sec)`))
-describeBy(data.cog.baseline2$`Stroop 2 Time(sec)`)
-
-data.cog.baseline2$`Stroop 3 Time(sec)` <- as.numeric(as.character(data.cog.baseline2$`Stroop 3 Time(sec)`))
-describeBy(data.cog.baseline2$`Stroop 3 Time(sec)`)
-
-data.cog.baseline2$`Stroop 3 - Stroop 2 Time(sec)` <- as.numeric(as.character(data.cog.baseline2$`Stroop 3 - Stroop 2 Time(sec)`))
-describeBy(data.cog.baseline2$`Stroop 3 - Stroop 2 Time(sec)`)
-
-
+describeBy(data.cog.baseline2$`MoCA`)
 
 
 
 # Moderation Analysis
 
-data.cog.phys.baseline <- merge(data.phys.baseline3, data.cog.baseline3, by = "ID")
-data.cog.phys.baseline <- rename(data.cog.phys.baseline, c("CF PWV"="PWV",
-                                                           "Grip Strength (Total Score)"="Grip_Strength",
-                                                           "6MWT (Meters Walked)"="Meters_Walked",
-                                                           "Trails B minus A"="TMT-B-A",
-                                                           "Stroop 3 - Stroop 2 Time(sec)"="Stroop3-2"))
-data.cog.phys.baseline <- rename(data.cog.phys.baseline, c("TMT-B-A"="TMT_BA",
-                                                           "Stroop3-2"="Stroop_32"))
-
-data.cog.phys.baseline$VO2max <- ((0.1 * (data.cog.phys.baseline$Meters_Walked / 6) + 3.5) / 3.5) * 3.5
+data.cog.phys.baseline <- merge(data.phys.baseline2, data.cog.baseline2, by = "ID")
 
 
 
-# Model 1 CRF and TMT
-model.CRF.TMT <- lm(TMT_BA ~ PWV * VO2max, data.cog.phys.baseline)
+# Model 1 CRF(VO2max) and TMT
+model.CRF.TMT <- lm(TMT_BA ~ PWV * VO2max + Age + Sex + BMI + MoCA, data.cog.phys.baseline)
 summary(model.CRF.TMT)
 
 # Visualizing interaction effect
@@ -143,7 +110,7 @@ print(outlierTest(model.CRF.TMT))
 
 
 # Model 2 CRF and Stroop
-model.CRF.Stroop <- lm(Stroop_32 ~ PWV * VO2max, data.cog.phys.baseline)
+model.CRF.Stroop <- lm(Stroop_32 ~ PWV * VO2max + Age + Sex + BMI + MoCA, data.cog.phys.baseline)
 summary(model.CRF.Stroop)
 
 # Visualizing interaction effect
@@ -173,4 +140,95 @@ shapiro.test(resid(model.CRF.Stroop))
 print(vif(model.CRF.Stroop))
 
 # Outliers and Influential Observations
-print(outlierTest(model.CRF.Stroop)) 
+print(outlierTest(model.CRF.Stroop))
+
+
+
+# Model 3 MS and TMT
+model.MS.TMT <- lm(TMT_BA ~ PWV * Grip_Strength + Age + Sex + BMI + MoCA, data.cog.phys.baseline)
+summary(model.MS.TMT) 
+
+# Visualizing interaction effect
+interactions :: interact_plot(model.MS.TMT, pred = PWV, modx = Grip_Strength)
+
+# Linearity & Additivity assumption
+plot(model.MS.TMT$fitted.values, residuals(model.MS.TMT),
+     xlab = "Fitted Values", 
+     ylab = "Residuals", 
+     main = "Residuals vs. Fitted Values",
+     pch = 20, col = "blue")
+abline(h = 0, col = "red", lwd = 2) 
+
+# Independence of Residuals assumption 
+print(dwt(model.MS.TMT))
+
+# Homoscedasticity assumption
+bptest(model.MS.TMT)
+
+# Normality of Residuals assumption 
+qqnorm(residuals(model.MS.TMT))  # Q-Q plot
+qqline(residuals(model.MS.TMT), col = "red")  # Add a reference line (ideal normal distribution)
+
+shapiro.test(resid(model.MS.TMT))
+
+# Multicollinearity assumption 
+print(vif(model.MS.TMT))
+
+# Outliers and Influential Observations
+print(outlierTest(model.MS.TMT))
+
+
+
+# Model 4 MS and Stroop
+model.MS.Stroop <- lm(Stroop_32 ~ PWV * Grip_Strength + Age + Sex + BMI + MoCA, data.cog.phys.baseline)
+summary(model.MS.Stroop) 
+
+# Visualizing interaction effect
+interactions :: interact_plot(model.MS.Stroop, pred = PWV, modx = Grip_Strength)
+
+# Linearity & Additivity assumption
+plot(model.MS.Stroop$fitted.values, residuals(model.MS.Stroop),
+     xlab = "Fitted Values", 
+     ylab = "Residuals", 
+     main = "Residuals vs. Fitted Values",
+     pch = 20, col = "blue")
+abline(h = 0, col = "red", lwd = 2) 
+
+# Independence of Residuals assumption 
+print(dwt(model.MS.Stroop))
+
+# Homoscedasticity assumption
+bptest(model.MS.Stroop)
+
+# Normality of Residuals assumption 
+qqnorm(residuals(model.MS.Stroop))  # Q-Q plot
+qqline(residuals(model.MS.Stroop), col = "red")  # Add a reference line (ideal normal distribution)
+
+shapiro.test(resid(model.MS.Stroop))
+
+# Multicollinearity assumption 
+print(vif(model.MS.Stroop))
+
+# Outliers and Influential Observations
+print(outlierTest(model.MS.Stroop))
+
+
+
+# Simple Slope Analysis
+# Model 1 CRF(VO2max) and TMT
+
+library(emmeans)
+
+ss.model <- lm(TMT_BA ~ PWV * VO2max + Age + Sex + BMI + MoCA, data = data.cog.phys.baseline)
+
+zvals <- c(mean(data.cog.phys.baseline$VO2max) - sd(data.cog.phys.baseline$VO2max), 
+           mean(data.cog.phys.baseline$VO2max), 
+           mean(data.cog.phys.baseline$VO2max) + sd(data.cog.phys.baseline$VO2max))
+
+emtrends(ss.model, specs = "VO2max", var = "PWV", at = list(VO2max = zvals)) |> test()
+
+
+# Model 2 CRF(VO2max) and Stroop
+ss.model2 <- lm(Stroop_32 ~ PWV * VO2max + Age + Sex + BMI + MoCA, data = data.cog.phys.baseline)
+
+emtrends(ss.model2, specs = "VO2max", var = "PWV", at = list(VO2max = zvals)) |> test()
